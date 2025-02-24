@@ -65,7 +65,6 @@ fn main() {
     let mut builder = CircuitBuilder::<GoldilocksField, 2>::new(CircuitConfig::standard_recursion_config());
     let mut witness = PartialWitness::new();
     build_recursive(&mut builder, &mut witness, &cd.common, &proof_with_pis, cd.common.config.fri_config.cap_height, &cd.verifier_only);
-    build_hashchain_circuit(&mut builder, &mut witness);
     // build the circuit
     let start = Instant::now();
     let cd = builder.build::<PoseidonGoldilocksConfig>();
