@@ -8,20 +8,24 @@ use plonky2::hash::poseidon::PoseidonHash;
 use plonky2::iop::witness::{PartialWitness, WitnessWrite};
 use plonky2::plonk::circuit_builder::CircuitBuilder;
 use plonky2::plonk::circuit_data::{CircuitConfig, CommonCircuitData};
-use plonky2::plonk::config::{AlgebraicHasher, GenericConfig, PoseidonGoldilocksConfig};
+use plonky2::plonk::config::{AlgebraicHasher, GenericConfig, Hasher, PoseidonGoldilocksConfig};
 use plonky2::plonk::proof::ProofWithPublicInputs;
 
 
 fn build_hashchain_circuit<F: RichField + Extendable<D>, const D: usize>(builder: &mut CircuitBuilder<F, D>, witness: &mut PartialWitness<F>) {
     let num_hashes: i32 = 1 << 10;
     let initial_value = builder.add_virtual_hash_public_input();
-    // let final_value = builder.add_virtual_hash();
-    let before = HashOut::rand();
+    let final_value = builder.add_virtual_hash_public_input();
+    let before: HashOut<F> = HashOut::rand();
+    let mut after = before.clone();
     let mut current = initial_value;
     for _ in 0..num_hashes {
-        current = builder.hash_n_to_hash_no_pad::<PoseidonHash>(current.elements.to_vec())
+        current = builder.hash_n_to_hash_no_pad::<PoseidonHash>(current.elements.to_vec());
+        after = PoseidonHash::hash_no_pad(&after.elements);
     }
+    builder.connect_hashes(current, final_value);
     witness.set_hash_target(initial_value, before).unwrap();
+    witness.set_hash_target(final_value, after).unwrap();
 }
 
 fn build_recursive<C: GenericConfig<D, F = F>, F: RichField + Extendable<D>, const D: usize> (
