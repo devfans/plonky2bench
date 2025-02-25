@@ -66,6 +66,8 @@ fn main() {
     cd.verify(proof_with_pis.clone()).expect("Failed to verify");
     println!("verify {} ms", start.elapsed().as_millis());
 
+    // ============== Recursive =====================
+
     let mut builder = CircuitBuilder::<GoldilocksField, 2>::new(CircuitConfig::standard_recursion_config());
     let mut witness = PartialWitness::new();
     build_recursive(&mut builder, &mut witness, &cd.common, &proof_with_pis, cd.common.config.fri_config.cap_height, &cd.verifier_only);
@@ -85,7 +87,32 @@ fn main() {
 
     // verify
     let start = Instant::now();
-    cd.verify(proof_with_pis).expect("Failed to verify recursive");
+    cd.verify(proof_with_pis.clone()).expect("Failed to verify recursive");
     println!("verify recursive {} ms", start.elapsed().as_millis());
+
+    // ============== Recursive nested =====================
+
+
+    let mut builder = CircuitBuilder::<GoldilocksField, 2>::new(CircuitConfig::standard_recursion_config());
+    let mut witness = PartialWitness::new();
+    build_recursive(&mut builder, &mut witness, &cd.common, &proof_with_pis, cd.common.config.fri_config.cap_height, &cd.verifier_only);
+    // build the circuit
+    let start = Instant::now();
+    let cd = builder.build::<PoseidonGoldilocksConfig>();
+    println!("build nested recursive {} ms", start.elapsed().as_millis());
+
+    // prove
+    let start = Instant::now();
+    let proof_with_pis = cd.prove(witness).unwrap();
+    println!("prove nested recursive {} ms", start.elapsed().as_millis());
+    {
+        let proof_bytes = bincode::serialize(&proof_with_pis.proof).expect("Failed to serialize proof");
+        println!("Proof nested recursive size: {} bytes", proof_bytes.len());
+    }
+
+    // verify
+    let start = Instant::now();
+    cd.verify(proof_with_pis).expect("Failed to verify nested recursive");
+    println!("verify nested recursive {} ms", start.elapsed().as_millis());
 }
 
